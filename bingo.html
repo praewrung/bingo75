@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bingo 75 Professional</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #121212;
+    color: #fff;
+    text-align: center;
+}
+
+h1 {
+    margin: 10px 0;
+}
+
+#current {
+    font-size: 96px;
+    font-weight: bold;
+    color: #ff5252;
+    margin: 10px 0;
+}
+
+.buttons {
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+}
+
+button {
+    flex: 1;
+    font-size: 22px;
+    padding: 15px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+}
+
+.draw {
+    background: #4caf50;
+    color: #fff;
+}
+
+.reset {
+    background: #f44336;
+    color: #fff;
+}
+
+.board {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+    padding: 10px;
+}
+
+.column {
+    background: #1f1f1f;
+    border-radius: 10px;
+    padding: 5px;
+}
+
+.column h2 {
+    margin: 5px 0;
+    color: #ffd54f;
+}
+
+.number {
+    padding: 8px 0;
+    margin: 4px 0;
+    border-radius: 6px;
+    background: #555;
+    color: #aaa;
+    font-weight: bold;
+}
+
+.number.active {
+    background: #fff;
+    color: #000;
+}
+
+@media (min-width: 768px) {
+    #current {
+        font-size: 140px;
+    }
+    button {
+        font-size: 28px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<h1>🎱 BINGO 75</h1>
+
+<div id="current">-</div>
+
+<div class="buttons">
+    <button class="draw" onclick="drawNumber()">สุ่มเลข</button>
+    <button class="reset" onclick="resetGame()">Reset</button>
+</div>
+
+<div class="board" id="board"></div>
+
+<script>
+const columns = [
+    { label: "B", start: 1, end: 15 },
+    { label: "I", start: 16, end: 30 },
+    { label: "N", start: 31, end: 45 },
+    { label: "G", start: 46, end: 60 },
+    { label: "O", start: 61, end: 75 }
+];
+
+let drawnNumbers = JSON.parse(localStorage.getItem("bingo_numbers")) || [];
+let thaiVoice = null;
+function loadVoices() {
+    const voices = speechSynthesis.getVoices();
+    thaiVoice = voices.find(v => v.lang === "th-TH") 
+             || voices.find(v => v.lang.startsWith("th"));
+}
+
+speechSynthesis.onvoiceschanged = loadVoices;
+loadVoices();
+function speak(text) {
+   /* if (!thaiVoice) {
+        alert("❗ เครื่องนี้ไม่มีเสียงภาษาไทย\nกรุณาเพิ่มภาษาไทยในระบบก่อน");
+        return;
+    }*/
+
+    speechSynthesis.cancel();
+    const msg = new SpeechSynthesisUtterance(text);
+    msg.voice = thaiVoice;
+    msg.lang = "th-TH";
+    msg.rate = 0.9;
+    msg.pitch = 1;
+    speechSynthesis.speak(msg);
+}
+
+
+function drawNumber() {
+    if (drawnNumbers.length >= 75) {
+        speak("ครบเจ็ดสิบห้าเลขแล้ว");
+        alert("สุ่มครบ 75 เลขแล้ว");
+        return;
+    }
+
+    let num;
+    do {
+        num = Math.floor(Math.random() * 75) + 1;
+    } while (drawnNumbers.includes(num));
+
+    drawnNumbers.push(num);
+    localStorage.setItem("bingo_numbers", JSON.stringify(drawnNumbers));
+
+    document.getElementById("current").innerText = num;
+
+    const col = columns.find(c => num >= c.start && num <= c.end).label;
+    speak(`เลข ${col} ${num}`);
+
+    renderBoard();
+}
+
+function renderBoard() {
+    const board = document.getElementById("board");
+    board.innerHTML = "";
+
+    columns.forEach(col => {
+        const div = document.createElement("div");
+        div.className = "column";
+        div.innerHTML = `<h2>${col.label}</h2>`;
+
+        for (let i = col.start; i <= col.end; i++) {
+            const n = document.createElement("div");
+            n.className = "number";
+            n.innerText = i;
+            if (drawnNumbers.includes(i)) {
+                n.classList.add("active");
+            }
+            div.appendChild(n);
+        }
+
+        board.appendChild(div);
+    });
+}
+
+function resetGame() {
+    if (!confirm("ต้องการเริ่มเกมใหม่หรือไม่?")) return;
+    drawnNumbers = [];
+    localStorage.removeItem("bingo_numbers");
+    document.getElementById("current").innerText = "-";
+    renderBoard();
+}
+
+renderBoard();
+</script>
+
+</body>
+</html>
